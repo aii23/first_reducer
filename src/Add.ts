@@ -1,4 +1,5 @@
 import { Field, SmartContract, state, State, method, Reducer } from 'o1js';
+import { ReduceProof } from './ReduceProof';
 
 export class Add extends SmartContract {
   @state(Field) totalSum = State<Field>();
@@ -34,5 +35,24 @@ export class Add extends SmartContract {
     this.lastProcessedActionState.set(actions.hash);
   }
 
-  @method async customReduce() {}
+  @method async customReduce(reduceProof: ReduceProof) {
+    reduceProof.verify();
+
+    const lastProcessedActionState =
+      this.lastProcessedActionState.getAndRequireEquals();
+    const totalSum = this.totalSum.getAndRequireEquals();
+
+    // Proof inputs check
+    reduceProof.publicOutput.initialActionState.assertEquals(
+      lastProcessedActionState
+    );
+    reduceProof.publicOutput.initialSum.assertEquals(totalSum);
+
+    this.account.actionState.requireEquals(
+      reduceProof.publicOutput.actionListState
+    );
+
+    this.totalSum.set(reduceProof.publicOutput.total);
+    this.lastProcessedActionState.set(reduceProof.publicOutput.actionListState);
+  }
 }
