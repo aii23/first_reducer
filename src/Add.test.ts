@@ -8,6 +8,7 @@ describe('Add', () => {
     deployerKey: PrivateKey,
     senderAccount: Mina.TestPublicKey,
     senderKey: PrivateKey,
+    others: Mina.TestPublicKey[],
     zkAppAddress: PublicKey,
     zkAppPrivateKey: PrivateKey,
     zkApp: Add;
@@ -19,7 +20,7 @@ describe('Add', () => {
   beforeEach(async () => {
     const Local = await Mina.LocalBlockchain({ proofsEnabled });
     Mina.setActiveInstance(Local);
-    [deployerAccount, senderAccount] = Local.testAccounts;
+    [deployerAccount, senderAccount, ...others] = Local.testAccounts;
     deployerKey = deployerAccount.key;
     senderKey = senderAccount.key;
 
@@ -44,7 +45,74 @@ describe('Add', () => {
     expect(num).toEqual(Field(0));
   });
 
-  it('correctly updates the num state on the `Add` smart contract', async () => {
+  it('correctly updates the totalSum with default reducer', async () => {
     await localDeploy();
+
+    let expectedTotal = Field(0);
+
+    // Dispatch all actions
+    for (let i = 0; i < 5; i++) {
+      let sender = others[i];
+      let tx = await Mina.transaction(sender, async () => {
+        await zkApp.add(Field(i));
+      });
+
+      await tx.prove();
+      await tx.sign([sender.key]).send();
+
+      expectedTotal = expectedTotal.add(Field(i));
+    }
+
+    let curTotalSum = zkApp.totalSum.get();
+    expect(curTotalSum).toEqual(Field(0));
+    console.log(`Initial totalSum: ${curTotalSum}`);
+
+    // Reduce
+    let tx = await Mina.transaction(senderAccount, async () => {
+      await zkApp.defaultReduce();
+    });
+
+    await tx.prove();
+    await tx.sign([senderAccount.key]).send();
+
+    let finalTotalSum = zkApp.totalSum.get();
+    expect(finalTotalSum).toEqual(expectedTotal);
+
+    // Do reduce second time, so we can check, that actions processed only once
+    let tx2 = await Mina.transaction(senderAccount, async () => {
+      await zkApp.defaultReduce();
+    });
+
+    await tx2.prove();
+    await tx2.sign([senderAccount.key]).send();
+
+    finalTotalSum = zkApp.totalSum.get();
+    expect(finalTotalSum).toEqual(expectedTotal);
+    console.log(`totalSum after first dispatch: ${finalTotalSum}`);
+
+    // Dispatch more actions
+    for (let i = 0; i < 5; i++) {
+      let sender = others[i];
+      let tx = await Mina.transaction(sender, async () => {
+        await zkApp.add(Field(i));
+      });
+
+      await tx.prove();
+      await tx.sign([sender.key]).send();
+
+      expectedTotal = expectedTotal.add(Field(i));
+    }
+
+    let tx3 = await Mina.transaction(senderAccount, async () => {
+      await zkApp.defaultReduce();
+    });
+
+    await tx3.prove();
+    await tx3.sign([senderAccount.key]).send();
+
+    finalTotalSum = zkApp.totalSum.get();
+    expect(finalTotalSum).toEqual(expectedTotal);
+
+    console.log(`totalSum after final dispatch: ${finalTotalSum}`);
   });
 });
