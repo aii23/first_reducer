@@ -110,12 +110,7 @@ describe('Add', () => {
       expect(finalTotalSum).toEqual(expectedTotal);
 
       // Do reduce second time, so we can check, that actions processed only once
-      let tx2 = await Mina.transaction(senderAccount, async () => {
-        await zkApp.defaultReduce();
-      });
-
-      await tx2.prove();
-      await tx2.sign([senderAccount.key]).send();
+      await reduce();
 
       finalTotalSum = zkApp.totalSum.get();
       expect(finalTotalSum).toEqual(expectedTotal);
@@ -135,12 +130,7 @@ describe('Add', () => {
         expectedTotal = expectedTotal.add(value);
       }
 
-      let tx3 = await Mina.transaction(senderAccount, async () => {
-        await zkApp.defaultReduce();
-      });
-
-      await tx3.prove();
-      await tx3.sign([senderAccount.key]).send();
+      await reduce();
 
       finalTotalSum = zkApp.totalSum.get();
       expect(finalTotalSum).toEqual(expectedTotal);
