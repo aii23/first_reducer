@@ -62,20 +62,22 @@ export const emptyActionListHash = emptyHashWithPrefix('MinaZkappActionsEmpty');
 export async function init(
   input: ReducePublicInput,
   initialActionListState: Field
-): Promise<ReducePublicOutput> {
-  return new ReducePublicOutput({
-    total: input.value,
-    initialSum: input.value,
-    initialActionState: initialActionListState,
-    actionSubListState: emptyActionListHash,
-    actionListState: initialActionListState,
-  });
+): Promise<{ publicOutput: ReducePublicOutput }> {
+  return {
+    publicOutput: new ReducePublicOutput({
+      total: input.value,
+      initialSum: input.value,
+      initialActionState: initialActionListState,
+      actionSubListState: emptyActionListHash,
+      actionListState: initialActionListState,
+    }),
+  };
 }
 
 export async function add(
   input: ReducePublicInput,
   prevProof: SelfProof<ReducePublicInput, ReducePublicOutput>
-): Promise<ReducePublicOutput> {
+): Promise<{ publicOutput: ReducePublicOutput }> {
   prevProof.verify();
 
   let newActionSubListState = actionListAdd(
@@ -83,29 +85,33 @@ export async function add(
     input.value
   );
 
-  return new ReducePublicOutput({
-    total: prevProof.publicOutput.total.add(input.value),
-    initialSum: prevProof.publicOutput.initialSum,
-    initialActionState: prevProof.publicOutput.initialActionState,
-    actionSubListState: newActionSubListState,
-    actionListState: prevProof.publicOutput.actionListState,
-  });
+  return {
+    publicOutput: new ReducePublicOutput({
+      total: prevProof.publicOutput.total.add(input.value),
+      initialSum: prevProof.publicOutput.initialSum,
+      initialActionState: prevProof.publicOutput.initialActionState,
+      actionSubListState: newActionSubListState,
+      actionListState: prevProof.publicOutput.actionListState,
+    }),
+  };
 }
 
 export async function cutActions(
   input: ReducePublicInput,
   prevProof: SelfProof<ReducePublicInput, ReducePublicOutput>
-): Promise<ReducePublicOutput> {
-  return new ReducePublicOutput({
-    total: prevProof.publicOutput.total,
-    initialSum: prevProof.publicOutput.initialSum,
-    initialActionState: prevProof.publicOutput.initialActionState,
-    actionSubListState: emptyActionListHash,
-    actionListState: merkleActionsAdd(
-      prevProof.publicOutput.actionListState,
-      prevProof.publicOutput.actionSubListState
-    ),
-  });
+): Promise<{ publicOutput: ReducePublicOutput }> {
+  return {
+    publicOutput: new ReducePublicOutput({
+      total: prevProof.publicOutput.total,
+      initialSum: prevProof.publicOutput.initialSum,
+      initialActionState: prevProof.publicOutput.initialActionState,
+      actionSubListState: emptyActionListHash,
+      actionListState: merkleActionsAdd(
+        prevProof.publicOutput.actionListState,
+        prevProof.publicOutput.actionSubListState
+      ),
+    }),
+  };
 }
 
 export const ReduceProgram = ZkProgram({
@@ -115,10 +121,7 @@ export const ReduceProgram = ZkProgram({
   methods: {
     init: {
       privateInputs: [Field],
-      async method(
-        input: ReducePublicInput,
-        initialActionListState: Field
-      ): Promise<ReducePublicOutput> {
+      async method(input: ReducePublicInput, initialActionListState: Field) {
         return init(input, initialActionListState);
       },
     },

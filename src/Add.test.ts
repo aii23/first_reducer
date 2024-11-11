@@ -14,6 +14,7 @@ import {
   add,
   cutActions,
   init,
+  ReduceProgram,
   ReduceProof,
   ReducePublicInput,
 } from './ReduceProof';
@@ -101,7 +102,6 @@ describe('Add', () => {
 
       let curTotalSum = zkApp.totalSum.get();
       expect(curTotalSum).toEqual(Field(0));
-      console.log(`Initial totalSum: ${curTotalSum}`);
 
       // Reduce
       await reduce();
@@ -114,7 +114,6 @@ describe('Add', () => {
 
       finalTotalSum = zkApp.totalSum.get();
       expect(finalTotalSum).toEqual(expectedTotal);
-      console.log(`totalSum after first dispatch: ${finalTotalSum}`);
 
       // Dispatch more actions
       for (let i = 0; i < 5; i++) {
@@ -180,10 +179,9 @@ describe('Add', () => {
         value: zkApp.totalSum.get(),
       });
 
-      let initPublicOutput = await init(
-        initPublicInput,
-        curLatestProcessedState
-      );
+      let initPublicOutput = (
+        await init(initPublicInput, curLatestProcessedState)
+      ).publicOutput;
 
       let curProof = await mockProof(
         initPublicOutput,
@@ -199,7 +197,7 @@ describe('Add', () => {
             value: action,
           });
 
-          let publicOutput = await add(publicInput, curProof);
+          let publicOutput = (await add(publicInput, curProof)).publicOutput;
 
           curProof = await mockProof(publicOutput, ReduceProof, publicInput);
         }
@@ -208,7 +206,8 @@ describe('Add', () => {
           value: Field(0), // Unused
         });
 
-        let cutPublicOutput = await cutActions(cutPublicInput, curProof);
+        let cutPublicOutput = (await cutActions(cutPublicInput, curProof))
+          .publicOutput;
 
         curProof = await mockProof(
           cutPublicOutput,
@@ -255,10 +254,9 @@ describe('Add', () => {
         value: zkApp.totalSum.get(),
       });
 
-      let initPublicOutput = await flatInit(
-        initPublicInput,
-        curLatestProcessedState
-      );
+      let initPublicOutput = (
+        await flatInit(initPublicInput, curLatestProcessedState)
+      ).publicOutput;
 
       let curProof = await mockProof(
         initPublicOutput,
@@ -274,7 +272,8 @@ describe('Add', () => {
             value: action,
           });
 
-          let publicOutput = await flatAdd(publicInput, curProof);
+          let publicOutput = (await flatAdd(publicInput, curProof))
+            .publicOutput;
 
           curProof = await mockProof(publicOutput, FlatProof, publicInput);
 
@@ -285,7 +284,8 @@ describe('Add', () => {
           value: Field(0), // Unused
         });
 
-        let cutPublicOutput = await flatCutActions(cutPublicInput, curProof);
+        let cutPublicOutput = (await flatCutActions(cutPublicInput, curProof))
+          .publicOutput;
 
         curProof = await mockProof(cutPublicOutput, FlatProof, cutPublicInput);
       }

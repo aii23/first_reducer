@@ -67,50 +67,58 @@ export class FlatPublicOutput extends Struct({
 export async function flatInit(
   input: FlatPublicInput,
   initialActionListState: Field
-): Promise<FlatPublicOutput> {
-  return new FlatPublicOutput({
-    initialActionState: initialActionListState,
-    actionSubListState: emptyActionListHash,
-    actionListState: initialActionListState,
-    flatListState: emptyFlatListHash,
-  });
+): Promise<{ publicOutput: FlatPublicOutput }> {
+  return {
+    publicOutput: new FlatPublicOutput({
+      initialActionState: initialActionListState,
+      actionSubListState: emptyActionListHash,
+      actionListState: initialActionListState,
+      flatListState: emptyFlatListHash,
+    }),
+  };
 }
 
 export async function flatAdd(
   input: FlatPublicInput,
   prevProof: SelfProof<FlatPublicInput, FlatPublicOutput>
-): Promise<FlatPublicOutput> {
+): Promise<{ publicOutput: FlatPublicOutput }> {
   prevProof.verify();
 
+  console.log(prevProof.publicOutput);
+  console.log(prevProof.publicOutput.actionSubListState);
   let newActionSubListState = actionListAdd(
     prevProof.publicOutput.actionSubListState,
     input.value
   );
 
-  return new FlatPublicOutput({
-    initialActionState: prevProof.publicOutput.initialActionState,
-    actionSubListState: newActionSubListState,
-    actionListState: prevProof.publicOutput.actionListState,
-    flatListState: flatListAdd(
-      prevProof.publicOutput.flatListState,
-      input.value
-    ),
-  });
+  return {
+    publicOutput: new FlatPublicOutput({
+      initialActionState: prevProof.publicOutput.initialActionState,
+      actionSubListState: newActionSubListState,
+      actionListState: prevProof.publicOutput.actionListState,
+      flatListState: flatListAdd(
+        prevProof.publicOutput.flatListState,
+        input.value
+      ),
+    }),
+  };
 }
 
 export async function flatCutActions(
   input: FlatPublicInput,
   prevProof: SelfProof<FlatPublicInput, FlatPublicOutput>
-): Promise<FlatPublicOutput> {
-  return new FlatPublicOutput({
-    initialActionState: prevProof.publicOutput.initialActionState,
-    actionSubListState: emptyActionListHash,
-    actionListState: merkleActionsAdd(
-      prevProof.publicOutput.actionListState,
-      prevProof.publicOutput.actionSubListState
-    ),
-    flatListState: prevProof.publicOutput.flatListState,
-  });
+): Promise<{ publicOutput: FlatPublicOutput }> {
+  return {
+    publicOutput: new FlatPublicOutput({
+      initialActionState: prevProof.publicOutput.initialActionState,
+      actionSubListState: emptyActionListHash,
+      actionListState: merkleActionsAdd(
+        prevProof.publicOutput.actionListState,
+        prevProof.publicOutput.actionSubListState
+      ),
+      flatListState: prevProof.publicOutput.flatListState,
+    }),
+  };
 }
 
 export const FlatProgram = ZkProgram({
@@ -120,10 +128,7 @@ export const FlatProgram = ZkProgram({
   methods: {
     flatInit: {
       privateInputs: [Field],
-      async method(
-        input: FlatPublicInput,
-        initialActionListState: Field
-      ): Promise<FlatPublicOutput> {
+      async method(input: FlatPublicInput, initialActionListState: Field) {
         return flatInit(input, initialActionListState);
       },
     },
